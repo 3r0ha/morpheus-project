@@ -82,9 +82,8 @@ services:
       retries: 3
       start_period: 30s
 
-
   telegram-bot:
-    build: ./telegram-bot 
+    build: ./telegram-bot
     container_name: morpheus_telegram_bot
     restart: always
     env_file:
@@ -93,6 +92,25 @@ services:
       - morpheus_net
     depends_on:
       - api-gateway
+
+  tts-service:
+    build:
+      context: ./tts-service
+      dockerfile: Dockerfile
+    container_name: morpheus_tts
+    restart: unless-stopped
+    env_file:
+      - ./tts-service/.env
+    ports:
+      - "3010:3010"
+    networks:
+      - morpheus_net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   postgres_data:
