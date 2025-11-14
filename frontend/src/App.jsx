@@ -11,6 +11,9 @@ import AboutPage from './pages/AboutPage';
 import TariffsPage from './pages/TariffsPage';
 import { TelegramConnectPage } from './pages/TelegramConnectPage';
 import PaymentPage from './pages/PaymentPage';
+import { TermsOfServicePage } from './pages/TermsOfServicePage'; 
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,6 +36,8 @@ function App() {
           <Route path="/payment" element={isAuthenticated ? <PaymentPage /> : <Navigate to="/auth" />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/telegram-connect" element={<TelegramConnectPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
         </Routes>
       </BrowserRouter>
     </>

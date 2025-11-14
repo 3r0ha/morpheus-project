@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/context/AuthContext'; 
 import { loginUser, registerUser } from '@/services/apiClient';
@@ -11,6 +11,7 @@ import { AuthInput } from './AuthInput';
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', birthDate: '' });
+  const [isAgreed, setIsAgreed] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,6 +23,12 @@ const AuthForm = () => {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isLogin && !isAgreed) {
+        toast.error('Необходимо принять условия соглашения для регистрации.');
+        return;
+    }
+
     setIsLoading(true);
     setError('');
 
@@ -36,7 +43,6 @@ const AuthForm = () => {
       }
       
       login(response.data.token);
-
       navigate('/app');
 
     } catch (err) {
@@ -110,14 +116,45 @@ const AuthForm = () => {
             )}
           </AnimatePresence>
 
+          <AnimatePresence>
+            {!isLogin && (
+              <motion.div 
+                key="agreement-checkbox"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-start space-x-3 pt-2"
+              >
+                <input
+                  type="checkbox"
+                  id="agreement"
+                  checked={isAgreed}
+                  onChange={(e) => setIsAgreed(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-accent-ai focus:ring-accent-ai focus:ring-offset-background"
+                />
+                <label htmlFor="agreement" className="text-text-secondary text-sm">
+                  Я принимаю условия{' '}
+                  <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
+                    Пользовательского соглашения
+                  </Link>{' '}
+                  и даю согласие на обработку персональных данных в соответствии с{' '}
+                  <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
+                    Политикой
+                  </Link>.
+                </label>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="pt-4">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || (!isLogin && !isAgreed)}
               className="w-full bg-accent-ai text-white font-bold py-4 px-6 rounded-lg text-lg
                          transition-all duration-300 ease-in-out
                          hover:bg-white hover:text-accent-ai hover:shadow-lg hover:shadow-accent-ai/30
-                         transform hover:-translate-y-1 disabled:opacity-50"
+                         transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Загрузка...' : (isLogin ? 'Войти' : 'Создать аккаунт')}
             </button>
