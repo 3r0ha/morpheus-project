@@ -5,7 +5,7 @@ import { Header } from '@/components/app/Header';
 import { useQuery } from '@tanstack/react-query';
 import { getUserProfile } from '@/services/apiClient';
 import { Link } from 'react-router-dom';
-const TariffCard = ({ title, price, description, features, buttonText, isFeatured }) => (
+const TariffCard = ({ title, price, description, features, buttonText, isFeatured, buttonLink, disabled }) => (
   <motion.div
     initial={{ opacity: 0, y: 50 }}
     animate={{ opacity: 1, y: 0 }}
@@ -31,9 +31,14 @@ const TariffCard = ({ title, price, description, features, buttonText, isFeature
         </li>
       ))}
     </ul>
-    <button className={`w-full py-3 font-bold rounded-lg transition-colors ${isFeatured ? 'bg-accent-ai text-white hover:opacity-90' : 'bg-surface-1 text-text-primary hover:bg-accent-ai'}`}>
-      {buttonText}
-    </button>
+    <Link to={buttonLink} className={disabled ? 'pointer-events-none' : ''}>
+      <button 
+        disabled={disabled}
+        className={`w-full py-3 font-bold rounded-lg transition-colors ${isFeatured ? 'bg-accent-ai text-white hover:opacity-90' : 'bg-surface-1 text-text-primary hover:bg-accent-ai'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        {buttonText}
+      </button>
+    </Link>
   </motion.div>
 );
 

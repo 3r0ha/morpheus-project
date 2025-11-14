@@ -98,7 +98,11 @@ const ProfilePage = () => {
                     <h2 className="text-2xl font-semibold mb-4">Подписка</h2>
                     <p className="text-lg">Ваш статус: <span className="font-bold text-accent-ai">{user?.subscriptionStatus}</span></p>
                     <p className="text-text-secondary">Осталось толкований: {user?.remainingInterpretations}</p>
-                    <button className="w-full bg-yellow-500 text-black font-bold py-2 px-4 rounded mt-4 hover:opacity-90">Улучшить до Premium</button>
+                    <Link to="/tariffs">
+                <button className="w-full bg-yellow-500 text-black font-bold py-2 px-4 rounded mt-4 hover:opacity-90">
+                  Улучшить до Premium
+                </button>
+              </Link>
                 </div>
             <div className="bg-surface-2 p-8 rounded-lg border border-border-color">
                     <h2 className="text-2xl font-semibold mb-4">Интеграции</h2>
