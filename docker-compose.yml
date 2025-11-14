@@ -23,7 +23,7 @@ services:
 
   redis-cache:
     image: redis:7-alpine
-    container_name: morpheus_redis 
+    container_name: morpheus_redis
     restart: always
     ports:
       - "6379:6379"
@@ -33,11 +33,11 @@ services:
       - morpheus_net
 
   api-gateway:
-    build: ./api-gateway 
+    build: ./api-gateway
     container_name: morpheus_api_gateway
     restart: always
     env_file:
-      - ./api-gateway/.env 
+      - ./api-gateway/.env
     ports:
       - "3001:3001"
       - "5555:5555"
@@ -51,7 +51,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend 
+      context: ./frontend
       args:
         VITE_API_URL: http://localhost:3001/api
     container_name: morpheus_frontend
@@ -64,16 +64,22 @@ services:
       - api-gateway
 
   ai-service:
-    build: ./ai-service 
+    build:
+      context: ./ai-service/app
+      dockerfile: Dockerfile
     container_name: morpheus_ai
     restart: always
     ports:
-      - "8000:8000"
+      - "8000:3000"
+    env_file:
+      - ./ai-service/app/.env
     networks:
       - morpheus_net
+    depends_on:
+      - api-gateway
 
   telegram-bot:
-    build: ./telegram-bot 
+    build: ./telegram-bot
     container_name: morpheus_telegram_bot
     restart: always
     env_file:

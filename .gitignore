@@ -29,3 +29,5 @@ docker-compose.override.yml
 
 .idea/
 .vscode/
+
+ai-service/app/.env
