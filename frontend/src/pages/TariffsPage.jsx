@@ -67,7 +67,7 @@ const TariffsPage = () => {
               price="0₽"
               description="Начните свой путь в мир снов."
               features={['3 толкования при регистрации', '1 бесплатное толкование каждые 3 дня', 'История снов']}
-              buttonText="Ваш текущий план"
+              buttonText={isAlreadyPremium ? "Стандартный план" : "Ваш текущий план"}
               buttonLink="#"
               disabled={!isAlreadyPremium}
             />
