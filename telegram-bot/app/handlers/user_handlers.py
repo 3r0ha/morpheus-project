@@ -8,6 +8,7 @@ from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.enums import ChatAction, ParseMode
 
 from app.keyboards.inline_keyboards import (
     create_history_keyboard,
@@ -23,6 +24,19 @@ from app.states import ChatStates
 router = Router()
 
 WEB_APP_URL = "https://morpheusantihype.icu"
+
+def format_for_telegram(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    text = re.sub(r'#+\s*(.*)', r'<b>\1</b>', text)
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    
+    text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+    text = re.sub(r'_(.*?)_', r'<i>\1</i>', text)
+    
+    text = re.sub(r'^\s*-\s', '• ', text, flags=re.MULTILINE)
+        
+    return text
 
 
 def escape_markdown_v2(text: str) -> str:
@@ -161,9 +175,11 @@ async def dialogue_message_handler(message: Message, state: FSMContext):
         
         if response and response.get("sessionId"):
             await state.update_data(session_id=response["sessionId"])
-            await message.answer(
-                response.get("initialResponse", "Интересный сон... Дай мне подумать.")
-            )
+            
+            raw_text = response.get("initialResponse", "Интересный сон... Дай мне подумать.")
+            formatted_text = format_for_telegram(raw_text)
+            await message.answer(formatted_text, parse_mode=ParseMode.HTML)
+
         else:
             error_text = "Прости, не смог начать толкование. Попробуй позже."
             if response and response.get("error"):
@@ -179,7 +195,11 @@ async def dialogue_message_handler(message: Message, state: FSMContext):
             session_id, telegram_id, message.text
         )
         if response and response.get("response"):
-            await message.answer(response.get("response"))
+
+            raw_text = response.get("response")
+            formatted_text = format_for_telegram(raw_text)
+            await message.answer(formatted_text, parse_mode=ParseMode.HTML)
+
         else:
             await message.answer("Прости, не смог обработать твой вопрос. Попробуй еще раз.")
 

@@ -2,10 +2,12 @@ import asyncio
 import logging
 import sys
 import os
+import re
 from dotenv import load_dotenv
 import socketio
 
 from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from app.handlers import user_handlers
 from app.keyboards.reply_keyboards import get_main_menu
@@ -20,6 +22,17 @@ if not all([BOT_TOKEN, API_URL, INTERNAL_SECRET]):
 
 sio = socketio.AsyncClient(logger=False, engineio_logger=False)
 bot_instance = Bot(token=BOT_TOKEN)
+
+def format_for_telegram(text: str) -> str:
+    text = re.sub(r'#+\s*(.*)', r'<b>\1</b>', text)
+    
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    
+    text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+    
+    text = re.sub(r'^\s*-\s', '• ', text, flags=re.MULTILINE)
+        
+    return text
 
 @sio.event
 async def connect():
@@ -39,11 +52,25 @@ async def connect_error(data):
 async def telegram_response(data):
     try:
         telegram_id = int(data['telegramId'])
-        content = data['content']
+        raw_content = data['content']
         print(f"WebSocket: Получен ответ для telegram_id {telegram_id}")
-        await bot_instance.send_message(chat_id=telegram_id, text=content)
+
+        formatted_content = format_for_telegram(raw_content)
+        
+        await bot_instance.send_message(
+            chat_id=telegram_id, 
+            text=formatted_content,
+            parse_mode=ParseMode.HTML 
+        )
     except Exception as e:
-        print(f"Ошибка при отправке сообщения в Telegram: {e}")
+        print(f"Ошибка при отправке сообщения с HTML: {e}. Попытка отправить как простой текст.")
+        try:
+            await bot_instance.send_message(
+                chat_id=telegram_id,
+                text=raw_content
+            )
+        except Exception as final_e:
+            print(f"Не удалось отправить даже простое сообщение: {final_e}")
 
 @sio.event
 async def user_authed(data):

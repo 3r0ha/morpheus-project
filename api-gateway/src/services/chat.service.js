@@ -122,8 +122,7 @@ const chatService = {
       data: { sessionId: session.id, role: 'user', content: text },
     });
     
-    const updatedHistory = [...session.messages, { role: 'user', content: text }];
-    const aiResponseText = await this._getInterpretationAndNotify(user, text, updatedHistory, []);
+    const aiResponseText = await this._getInterpretationAndNotify(user, text, session.messages, []);
     if (!aiResponseText) return null;
 
     const assistantMessage = await prisma.message.create({

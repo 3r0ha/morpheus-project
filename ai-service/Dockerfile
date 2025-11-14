@@ -1,13 +1,19 @@
-FROM python:3.9-slim
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY app/package*.json ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN npm install --only=production
 
-COPY . .
+FROM node:18-alpine
 
-EXPOSE 8000
+WORKDIR /app
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY --from=builder /app/node_modules ./node_modules
+
+COPY app/ .
+
+EXPOSE 3002
+
+CMD ["node", "index.js"]

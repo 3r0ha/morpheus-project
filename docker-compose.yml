@@ -64,13 +64,24 @@ services:
       - api-gateway
 
   ai-service:
-    build: ./ai-service 
+    build: 
+      context: ./ai-service  
+      dockerfile: Dockerfile
     container_name: morpheus_ai
     restart: always
+    env_file:
+      - ./ai-service/app/.env
     ports:
-      - "8000:8000"
+      - "3002:3002" 
     networks:
       - morpheus_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 
   telegram-bot:
     build: ./telegram-bot 

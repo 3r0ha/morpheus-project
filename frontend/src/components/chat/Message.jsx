@@ -3,8 +3,20 @@ import { motion } from 'framer-motion';
 import { User, Sparkles, Gem } from 'lucide-react'; 
 import { Link } from 'react-router-dom'; 
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 export const Message = ({ role, content, action }) => { 
   const isUser = role === 'user';
+
+  const markdownComponents = {
+    p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+    strong: ({ node, ...props }) => <strong className="font-bold" {...props} />,
+    em: ({ node, ...props }) => <em className="italic" {...props} />,
+    ul: ({ node, ...props }) => <ul className="list-disc list-inside space-y-1 my-2" {...props} />,
+    ol: ({ node, ...props }) => <ol className="list-decimal list-inside space-y-1 my-2" {...props} />,
+    li: ({ node, ...props }) => <li className="pl-2" {...props} />,
+  };
 
   return (
     <motion.div
@@ -19,12 +31,21 @@ export const Message = ({ role, content, action }) => {
         </div>
       )}
       <div 
-        className={`max-w-[85%] sm:max-w-xl rounded-2xl px-4 py-3 shadow-md
+        className={`prose prose-invert max-w-[85%] sm:max-w-xl rounded-2xl px-4 py-3 shadow-md
                    ${isUser 
                      ? 'bg-gradient-user text-white rounded-br-none' 
                      : 'bg-surface-2 text-text-primary rounded-bl-none'}`}
       >
-        <p className="whitespace-pre-wrap">{content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap">{content}</p>
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={markdownComponents}
+          >
+            {content}
+          </ReactMarkdown>
+        )}
 
         {action === 'subscribe' && (
           <div className="mt-4">
