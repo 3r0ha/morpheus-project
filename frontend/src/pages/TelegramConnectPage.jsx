@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../services/apiClient.js';
-// import { motion, AnimatePresence } from 'framer-motion'; // Анимации временно отключены для теста
 import { AuthToggle } from '../components/auth/AuthToggle.jsx';
 import { AuthInput } from '../components/auth/AuthInput.jsx';
 
 export const TelegramConnectPage = () => {
   const [mode, setMode] = useState('login');
   const [formData, setFormData] = useState({ email: '', password: '', name: '', birthDate: '' });
+  const [isAgreed, setIsAgreed] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tg, setTg] = useState(null);
-  const [appHeight, setAppHeight] = useState('100vh'); // State для динамической высоты
-
+  const [appHeight, setAppHeight] = useState('100vh'); 
   useEffect(() => {
-    // Небольшая задержка, чтобы дать Telegram SDK время на инициализацию
     const timer = setTimeout(() => {
       if (window.Telegram && window.Telegram.WebApp) {
         const webApp = window.Telegram.WebApp;
@@ -22,29 +20,25 @@ export const TelegramConnectPage = () => {
         webApp.expand();
         setTg(webApp);
 
-        // --- Логика для динамической высоты ---
         const setViewportHeight = () => {
           if (webApp.viewportHeight) {
             setAppHeight(`${webApp.viewportHeight}px`);
           }
         };
 
-        setViewportHeight(); // Устанавливаем начальную высоту
-        webApp.onEvent('viewportChanged', setViewportHeight); // Обновляем при изменении
+        setViewportHeight(); 
+        webApp.onEvent('viewportChanged', setViewportHeight);
         
         console.log("Telegram SDK инициализирован.");
-
-        // Очистка при размонтировании компонента
         return () => {
           webApp.offEvent('viewportChanged', setViewportHeight);
         };
-        // --- Конец логики высоты ---
 
       } else {
         console.error("SDK Telegram не найдено. Убедитесь, что приложение открыто в клиенте Telegram.");
         setError("Это приложение должно быть запущено внутри Telegram.");
       }
-    }, 100); // 100ms задержки
+    }, 100);
 
     return () => clearTimeout(timer);
   }, []);
@@ -57,6 +51,10 @@ export const TelegramConnectPage = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    if (mode === 'register' && !isAgreed) {
+        setError('Для регистрации необходимо принять условия соглашения.');
+        return;
+    }
     setIsLoading(true);
 
     if (!tg || !tg.initData) {
@@ -106,7 +104,6 @@ export const TelegramConnectPage = () => {
   };
 
   return (
-    // Применяем динамическую высоту и убираем min-h-screen
     <div 
       className="flex flex-col items-center justify-center p-4 font-body bg-background text-text-primary"
       style={{ minHeight: appHeight }}
@@ -118,7 +115,6 @@ export const TelegramConnectPage = () => {
             <div className="p-8 md:p-12">
                 <AuthToggle isLogin={mode === 'login'} setIsLogin={(isLogin) => setMode(isLogin ? 'login' : 'register')} />
 
-                {/* Заменяем motion.h2 на обычный h2 */}
                 <h2
                     key={mode}
                     className="font-headings text-4xl font-bold text-center text-white mb-10"
@@ -127,7 +123,6 @@ export const TelegramConnectPage = () => {
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Убираем AnimatePresence */}
                     {mode === 'register' && (
                       <AuthInput
                           name="name"
@@ -159,7 +154,6 @@ export const TelegramConnectPage = () => {
                         disabled={isLoading}
                     />
 
-                    {/* Убираем AnimatePresence */}
                     {mode === 'register' && (
                       <AuthInput
                           name="birthDate"
@@ -171,16 +165,38 @@ export const TelegramConnectPage = () => {
                       />
                     )}
                     
+                    {mode === 'register' && (
+                        <div className="flex items-start space-x-3 pt-2 text-sm">
+                            <input
+                                type="checkbox"
+                                id="agreement"
+                                checked={isAgreed}
+                                onChange={(e) => setIsAgreed(e.target.checked)}
+                                className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-accent-ai focus:ring-accent-ai focus:ring-offset-background"
+                            />
+                            <label htmlFor="agreement" className="text-text-secondary">
+                                Я принимаю условия{' '}
+                                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
+                                    Пользовательского соглашения
+                                </a>{' '}
+                                и даю согласие на обработку персональных данных в соответствии с{' '}
+                                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
+                                    Политикой
+                                </a>.
+                            </label>
+                        </div>
+                    )}
+
                     {error && <p className="text-red-400 text-center text-sm">{error}</p>}
 
                     <div className="pt-4">
                         <button
                             type="submit"
-                            disabled={isLoading}
+                            disabled={isLoading || (mode === 'register' && !isAgreed)}
                             className="w-full bg-accent-ai text-white font-bold py-4 px-6 rounded-lg text-lg
                                      transition-all duration-300 ease-in-out
                                      hover:bg-white hover:text-accent-ai hover:shadow-lg hover:shadow-accent-ai/30
-                                     transform hover:-translate-y-1 disabled:opacity-50"
+                                     transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading ? 'Загрузка...' : (mode === 'login' ? 'Войти и связать' : 'Создать и связать')}
                         </button>
