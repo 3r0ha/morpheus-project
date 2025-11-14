@@ -79,45 +79,6 @@ const authLimiter = rateLimit({
 
 // Роуты
 app.get('/', (req, res) => { res.json({ message: 'API Морфеус работает' }) });
-app.get('/health', async (req, res) => {
-    try {
-        const components = {
-            server: { status: 'UP' },
-            database: { status: 'UP' },
-            redis: { status: 'UP' },
-            bot: { status: 'UNKNOWN' }
-        };
-
-        await prisma.$queryRaw`SELECT 1`;
-
-        await redisClient.ping();
-
-        const botStatus = { ...statusStore.bot };
-        if (botStatus.status === 'UP') {
-            const now = new Date();
-            const lastHeartbeat = botStatus.lastHeartbeat;
-            if (lastHeartbeat && (now - lastHeartbeat) > 45000) {
-                botStatus.status = 'DEGRADED';
-                botStatus.message = 'Bot is connected, but heartbeat is delayed.';
-            }
-        }
-        components.bot = botStatus;
-        const isSystemDown = Object.values(components).some(c => c.status === 'DOWN');
-        const systemStatus = isSystemDown ? 'DOWN' : 'UP';
-
-        res.status(isSystemDown ? 503 : 200).json({ 
-            status: systemStatus, 
-            components 
-        });
-
-    } catch (error) {
-        console.error('Health check failed:', error);
-        res.status(503).json({ 
-            status: 'DOWN', 
-            error: error.message 
-        });
-    }
-});
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authLimiter);
 app.use('/api', apiRoutes);
