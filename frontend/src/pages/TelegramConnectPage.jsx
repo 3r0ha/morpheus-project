@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../services/apiClient.js';
-import { motion, AnimatePresence } from 'framer-motion';
+// import { motion, AnimatePresence } from 'framer-motion'; // Анимации временно отключены для теста
 import { AuthToggle } from '../components/auth/AuthToggle.jsx';
 import { AuthInput } from '../components/auth/AuthInput.jsx';
 
@@ -11,18 +11,42 @@ export const TelegramConnectPage = () => {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tg, setTg] = useState(null);
+  const [appHeight, setAppHeight] = useState('100vh'); // State для динамической высоты
 
   useEffect(() => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      const webApp = window.Telegram.WebApp;
-      webApp.ready();
-      webApp.expand();
-      setTg(webApp);
-      console.log("Telegram SDK инициализирован.");
-    } else {
-      console.error("SDK Telegram не найдено. Убедитесь, что приложение открыто в клиенте Telegram.");
-      setError("Это приложение должно быть запущено внутри Telegram.");
-    }
+    // Небольшая задержка, чтобы дать Telegram SDK время на инициализацию
+    const timer = setTimeout(() => {
+      if (window.Telegram && window.Telegram.WebApp) {
+        const webApp = window.Telegram.WebApp;
+        webApp.ready();
+        webApp.expand();
+        setTg(webApp);
+
+        // --- Логика для динамической высоты ---
+        const setViewportHeight = () => {
+          if (webApp.viewportHeight) {
+            setAppHeight(`${webApp.viewportHeight}px`);
+          }
+        };
+
+        setViewportHeight(); // Устанавливаем начальную высоту
+        webApp.onEvent('viewportChanged', setViewportHeight); // Обновляем при изменении
+        
+        console.log("Telegram SDK инициализирован.");
+
+        // Очистка при размонтировании компонента
+        return () => {
+          webApp.offEvent('viewportChanged', setViewportHeight);
+        };
+        // --- Конец логики высоты ---
+
+      } else {
+        console.error("SDK Telegram не найдено. Убедитесь, что приложение открыто в клиенте Telegram.");
+        setError("Это приложение должно быть запущено внутри Telegram.");
+      }
+    }, 100); // 100ms задержки
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleInputChange = (e) => {
@@ -36,7 +60,7 @@ export const TelegramConnectPage = () => {
     setIsLoading(true);
 
     if (!tg || !tg.initData) {
-      const errorMsg = 'Критическая ошибка: отсутствуют данные Telegram (initData).';
+      const errorMsg = 'Критическая ошибка: отсутствуют данные Telegram (initData). Пожалуйста, перезапустите Web App.';
       setError(errorMsg);
       setIsLoading(false);
       return;
@@ -68,7 +92,9 @@ export const TelegramConnectPage = () => {
       setSuccess('Успешно! Возвращайтесь в чат.');
       
       setTimeout(() => {
-        tg.close();
+        if (tg) {
+          tg.close();
+        }
       }, 2000);
 
     } catch (err) {
@@ -80,7 +106,11 @@ export const TelegramConnectPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 font-body bg-background text-text-primary">
+    // Применяем динамическую высоту и убираем min-h-screen
+    <div 
+      className="flex flex-col items-center justify-center p-4 font-body bg-background text-text-primary"
+      style={{ minHeight: appHeight }}
+    >
       {success ? (
         <p className="text-green-400 text-2xl font-bold">{success}</p>
       ) : (
@@ -88,27 +118,25 @@ export const TelegramConnectPage = () => {
             <div className="p-8 md:p-12">
                 <AuthToggle isLogin={mode === 'login'} setIsLogin={(isLogin) => setMode(isLogin ? 'login' : 'register')} />
 
-                <motion.h2
+                {/* Заменяем motion.h2 на обычный h2 */}
+                <h2
                     key={mode}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
                     className="font-headings text-4xl font-bold text-center text-white mb-10"
                 >
                     {mode === 'login' ? 'Связь с аккаунтом' : 'Создание аккаунта'}
-                </motion.h2>
+                </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    <AnimatePresence>
-                        {mode === 'register' && (
-                        <AuthInput
-                            name="name"
-                            placeholder="Ваше имя"
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                        />
-                        )}
-                    </AnimatePresence>
+                    {/* Убираем AnimatePresence */}
+                    {mode === 'register' && (
+                      <AuthInput
+                          name="name"
+                          placeholder="Ваше имя"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          disabled={isLoading}
+                      />
+                    )}
 
                     <AuthInput
                         name="email"
@@ -131,18 +159,17 @@ export const TelegramConnectPage = () => {
                         disabled={isLoading}
                     />
 
-                    <AnimatePresence>
-                        {mode === 'register' && (
-                        <AuthInput
-                            name="birthDate"
-                            type="date"
-                            placeholder="Дата рождения"
-                            value={formData.birthDate}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                        />
-                        )}
-                    </AnimatePresence>
+                    {/* Убираем AnimatePresence */}
+                    {mode === 'register' && (
+                      <AuthInput
+                          name="birthDate"
+                          type="date"
+                          placeholder="Дата рождения"
+                          value={formData.birthDate}
+                          onChange={handleInputChange}
+                          disabled={isLoading}
+                      />
+                    )}
                     
                     {error && <p className="text-red-400 text-center text-sm">{error}</p>}
 
