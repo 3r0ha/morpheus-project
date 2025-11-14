@@ -28,9 +28,11 @@ import { swaggerSpec } from './config/swagger.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set('trust proxy', 1);
+
 const httpServer = http.createServer(app);
 
-const allowedOrigins = ['http://localhost', 'http://127.0.0.1'];
+const allowedOrigins = ['http://localhost', 'http://127.0.0.1', 'https://morpheusantihype.icu'];
 
 const corsOptions = {
   origin: function (origin, callback) {

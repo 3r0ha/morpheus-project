@@ -5,7 +5,6 @@ import toast from 'react-hot-toast';
 
 import apiClient, { getChatSessionDetails } from '@/services/apiClient';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL.replace('/api', '');
 
 export const useChat = (activeChatId, onNewChatCreated) => {
   const [messages, setMessages] = useState([]);
@@ -26,7 +25,7 @@ export const useChat = (activeChatId, onNewChatCreated) => {
     const token = localStorage.getItem('authToken');
     if (!token) return;
 
-    socketRef.current = io(SOCKET_URL, { auth: { token } });
+    socketRef.current = io({ auth: { token } });
     
     socketRef.current.on('connect', () => console.log('Socket.IO: Connected'));
     socketRef.current.on('disconnect', () => console.log('Socket.IO: Disconnected'));
