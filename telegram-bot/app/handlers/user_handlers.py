@@ -114,11 +114,20 @@ async def history_button_handler(callback: CallbackQuery, bot: Bot):
 
 @router.message(F.text == "▶️ Начать диалог", StateFilter(None))
 async def start_dialog_handler(message: Message, state: FSMContext):
-    await state.set_state(ChatStates.in_dialogue)
-    await message.answer(
-        "Я готов слушать. Опиши свой сон, и я помогу его разгадать.",
-        reply_markup=get_dialog_menu(),
-    )
+    telegram_id = message.from_user.id
+    user_data = await api_client.find_user_by_telegram_id(telegram_id)
+
+    if user_data:
+        await state.set_state(ChatStates.in_dialogue)
+        await message.answer(
+            "Я готов слушать. Опиши свой сон, и я помогу его разгадать.",
+            reply_markup=get_dialog_menu(),
+        )
+    else:
+        await message.answer(
+            "Сначала нужно связать твой аккаунт. Пожалуйста, войди или зарегистрируйся.",
+            reply_markup=get_onboarding_keyboard(),
+        )
 
 
 @router.message(F.text == "⏹️ Завершить диалог", StateFilter(ChatStates.in_dialogue))
@@ -133,6 +142,15 @@ async def end_dialog_handler(message: Message, state: FSMContext):
 @router.message(StateFilter(ChatStates.in_dialogue))
 async def dialogue_message_handler(message: Message, state: FSMContext):
     telegram_id = message.from_user.id
+    user_data = await api_client.find_user_by_telegram_id(telegram_id)
+    if not user_data:
+        await state.clear()
+        await message.answer(
+            "Произошла ошибка: твой аккаунт не найден. Пожалуйста, нажми /start и свяжи аккаунт заново.",
+            reply_markup=get_main_menu(),
+        )
+        return
+
     await message.bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
 
     data = await state.get_data()
