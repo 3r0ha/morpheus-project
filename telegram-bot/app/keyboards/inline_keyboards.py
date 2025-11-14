@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 def get_onboarding_keyboard():
 
     builder = InlineKeyboardBuilder()
-    web_app_url = "https://better-pandas-care.loca.lt/telegram-connect" 
+    web_app_url = "https://morpheusantihype.icu/telegram-connect" 
     
     builder.button(
         text="➡️ Войти / Зарегистрироваться", 

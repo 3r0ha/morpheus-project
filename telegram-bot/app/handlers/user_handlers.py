@@ -22,7 +22,7 @@ from app.states import ChatStates
 
 router = Router()
 
-WEB_APP_URL = "https://cool-nights-knock.loca.lt"
+WEB_APP_URL = "https://morpheusantihype.icu"
 
 
 def escape_markdown_v2(text: str) -> str:
