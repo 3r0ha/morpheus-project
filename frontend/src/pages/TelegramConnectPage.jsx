@@ -11,7 +11,8 @@ export const TelegramConnectPage = () => {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tg, setTg] = useState(null);
-  const [appHeight, setAppHeight] = useState('100vh'); 
+  const [appHeight, setAppHeight] = useState('100vh');
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (window.Telegram && window.Telegram.WebApp) {
@@ -26,14 +27,14 @@ export const TelegramConnectPage = () => {
           }
         };
 
-        setViewportHeight(); 
+        setViewportHeight();
         webApp.onEvent('viewportChanged', setViewportHeight);
         
         console.log("Telegram SDK инициализирован.");
+
         return () => {
           webApp.offEvent('viewportChanged', setViewportHeight);
         };
-
       } else {
         console.error("SDK Telegram не найдено. Убедитесь, что приложение открыто в клиенте Telegram.");
         setError("Это приложение должно быть запущено внутри Telegram.");
@@ -51,10 +52,12 @@ export const TelegramConnectPage = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    
     if (mode === 'register' && !isAgreed) {
         setError('Для регистрации необходимо принять условия соглашения.');
         return;
     }
+
     setIsLoading(true);
 
     if (!tg || !tg.initData) {
@@ -105,103 +108,102 @@ export const TelegramConnectPage = () => {
 
   return (
     <div 
-      className="flex flex-col items-center justify-center p-4 font-body bg-background text-text-primary"
-      style={{ minHeight: appHeight }}
+      className="flex flex-col items-center justify-start p-4 font-body bg-background text-text-primary overflow-y-auto"
+      style={{ height: appHeight }} 
     >
       {success ? (
-        <p className="text-green-400 text-2xl font-bold">{success}</p>
+        <p className="text-green-400 text-2xl font-bold my-auto">{success}</p>
       ) : (
-        <div className="w-full max-w-xl bg-black/20 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl">
-            <div className="p-8 md:p-12">
-                <AuthToggle isLogin={mode === 'login'} setIsLogin={(isLogin) => setMode(isLogin ? 'login' : 'register')} />
+        <div className="w-full max-w-xl my-auto"> 
+            <div className="bg-black/20 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl">
+                <div className="p-8 md:p-12">
+                    <AuthToggle isLogin={mode === 'login'} setIsLogin={(isLogin) => setMode(isLogin ? 'login' : 'register')} />
 
-                <h2
-                    key={mode}
-                    className="font-headings text-4xl font-bold text-center text-white mb-10"
-                >
-                    {mode === 'login' ? 'Связь с аккаунтом' : 'Создание аккаунта'}
-                </h2>
+                    <h2 key={mode} className="font-headings text-4xl font-bold text-center text-white mb-10">
+                        {mode === 'login' ? 'Связь с аккаунтом' : 'Создание аккаунта'}
+                    </h2>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {mode === 'register' && (
-                      <AuthInput
-                          name="name"
-                          placeholder="Ваше имя"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          disabled={isLoading}
-                      />
-                    )}
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {mode === 'register' && (
+                          <AuthInput
+                              name="name"
+                              placeholder="Ваше имя"
+                              value={formData.name}
+                              onChange={handleInputChange}
+                              disabled={isLoading}
+                          />
+                        )}
 
-                    <AuthInput
-                        name="email"
-                        type="text"
-                        inputMode="email"
-                        placeholder="Email или телефон" 
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        disabled={isLoading}
-                    />
+                        <AuthInput
+                            name="email"
+                            type="text"
+                            inputMode="email"
+                            placeholder="Email или телефон" 
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            required
+                            disabled={isLoading}
+                        />
 
-                    <AuthInput
-                        name="password"
-                        type="password"
-                        placeholder="Пароль"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                        disabled={isLoading}
-                    />
+                        <AuthInput
+                            name="password"
+                            type="password"
+                            placeholder="Пароль"
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            required
+                            disabled={isLoading}
+                        />
 
-                    {mode === 'register' && (
-                      <AuthInput
-                          name="birthDate"
-                          type="date"
-                          placeholder="Дата рождения"
-                          value={formData.birthDate}
-                          onChange={handleInputChange}
-                          disabled={isLoading}
-                      />
-                    )}
-                    
-                    {mode === 'register' && (
-                        <div className="flex items-start space-x-3 pt-2 text-sm">
-                            <input
-                                type="checkbox"
-                                id="agreement"
-                                checked={isAgreed}
-                                onChange={(e) => setIsAgreed(e.target.checked)}
-                                className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-accent-ai focus:ring-accent-ai focus:ring-offset-background"
-                            />
-                            <label htmlFor="agreement" className="text-text-secondary">
-                                Я принимаю условия{' '}
-                                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
-                                    Пользовательского соглашения
-                                </a>{' '}
-                                и даю согласие на обработку персональных данных в соответствии с{' '}
-                                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
-                                    Политикой
-                                </a>.
-                            </label>
+                        {mode === 'register' && (
+                          <AuthInput
+                              name="birthDate"
+                              type="date"
+                              placeholder="Дата рождения"
+                              value={formData.birthDate}
+                              onChange={handleInputChange}
+                              disabled={isLoading}
+                          />
+                        )}
+                        
+                        {mode === 'register' && (
+                            <div className="flex items-start space-x-3 pt-2 text-sm">
+                                <input
+                                    type="checkbox"
+                                    id="agreement"
+                                    checked={isAgreed}
+                                    onChange={(e) => setIsAgreed(e.target.checked)}
+                                    className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-accent-ai focus:ring-accent-ai focus:ring-offset-background"
+                                />
+                                <label htmlFor="agreement" className="text-text-secondary">
+                                    Я принимаю условия{' '}
+                                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
+                                        Пользовательского соглашения
+                                    </a>{' '}
+                                    и даю согласие на обработку персональных данных в соответствии с{' '}
+                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent-ai hover:underline">
+                                        Политикой
+                                    </a>.
+                                </label>
+                            </div>
+                        )}
+
+                        {error && <p className="text-red-400 text-center text-sm">{error}</p>}
+
+                        <div className="pt-4">
+                            <button
+                                type="submit"
+                                disabled={isLoading || (mode === 'register' && !isAgreed)}
+                                className="w-full bg-accent-ai text-white font-bold py-4 px-6 rounded-lg text-lg
+                                        transition-all duration-300 ease-in-out
+                                        hover:bg-white hover:text-accent-ai hover:shadow-lg hover:shadow-accent-ai/30
+                                        transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? 'Загрузка...' : (mode === 'login' ? 'Войти и связать' : 'Создать и связать')}
+                            </button>
                         </div>
-                    )}
-
-                    {error && <p className="text-red-400 text-center text-sm">{error}</p>}
-
-                    <div className="pt-4">
-                        <button
-                            type="submit"
-                            disabled={isLoading || (mode === 'register' && !isAgreed)}
-                            className="w-full bg-accent-ai text-white font-bold py-4 px-6 rounded-lg text-lg
-                                     transition-all duration-300 ease-in-out
-                                     hover:bg-white hover:text-accent-ai hover:shadow-lg hover:shadow-accent-ai/30
-                                     transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? 'Загрузка...' : (mode === 'login' ? 'Войти и связать' : 'Создать и связать')}
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
       )}
