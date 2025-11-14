@@ -5,7 +5,7 @@ import adminRoutes from './admin/admin.routes.js';
 import telegramRoutes from './telegram/telegram.routes.js';
 import paymentRoutes from './payment/payment.routes.js';
 
-import statusStore from '../../config/statusStore.js'; 
+import statusStore from './config/statusStore.js'; 
 import { prisma } from '../../config/prisma.js';     
 import redisClient from '../../config/redis.js';
 
