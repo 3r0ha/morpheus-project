@@ -4,6 +4,7 @@ import { Header } from '@/components/app/Header';
 import { getUserProfile, updateUserProfile, changePassword } from '@/services/apiClient';
 import toast from 'react-hot-toast';
 import { Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const ProfilePage = () => {
   const [user, setUser] = useState(null);
