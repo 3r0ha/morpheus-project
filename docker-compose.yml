@@ -112,6 +112,25 @@ services:
       retries: 3
       start_period: 10s
 
+  ars-service:
+    build:
+      context: ./ars-service
+      dockerfile: Dockerfile
+    container_name: morpheus_ars
+    restart: always
+    env_file:
+      - ./ars-service/.env
+    ports:
+      - "3020:3020"
+    networks:
+      - morpheus_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3020/stt"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
 volumes:
   postgres_data:
   redis_data:
