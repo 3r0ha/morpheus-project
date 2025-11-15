@@ -187,6 +187,7 @@ async def voice_message_handler(message: Message, state: FSMContext, bot: Bot):
             error_text = response.get("error")
         await message.answer(error_text)
 
+
 @router.message(StateFilter(ChatStates.in_dialogue))
 async def dialogue_message_handler(message: Message, state: FSMContext, bot: Bot):
     telegram_id = message.from_user.id
@@ -204,9 +205,31 @@ async def dialogue_message_handler(message: Message, state: FSMContext, bot: Bot
     data = await state.get_data()
     session_id = data.get("session_id")
 
+    async def handle_interpretations_exhausted():
+        sub_status = user_data.get("subscriptionStatus", "FREE")
+        is_premium = sub_status == "PREMIUM"
+
+        if is_premium:
+            text = (
+                "У тебя закончились толкования на сегодня.\n\n"
+                "В <b>00:00 по МСК</b> тебе будет доступно <b>20 новых толкований</b>."
+            )
+            await message.answer(text, parse_mode=ParseMode.HTML)
+        else:
+            text = (
+                "У тебя закончились бесплатные толкования снов.\n\n"
+                "Следующее бесплатное толкование будет доступно <b>через 3 дня</b>.\n\n"
+                "Или оформи <b>Premium</b> — и толкуй сколько угодно!"
+            )
+            await message.answer(text, parse_mode=ParseMode.HTML, reply_markup=get_premium_feature_keyboard())
+
+        await state.clear()
+        await message.answer("Диалог завершен.", reply_markup=get_main_menu())
+        return True  # Ошибка обработана
+
     if not session_id:
         response = await api_client.send_dream(telegram_id, message.text)
-        
+
         if response and response.get("sessionId"):
             await state.update_data(session_id=response["sessionId"])
             raw_text = response.get("initialResponse", "Интересный сон... Дай мне подумать.")
@@ -214,12 +237,15 @@ async def dialogue_message_handler(message: Message, state: FSMContext, bot: Bot
             sent_message = await bot.send_message(message.chat.id, formatted_text, parse_mode=ParseMode.HTML)
             await sent_message.edit_reply_markup(reply_markup=get_tts_keyboard(sent_message.message_id))
         else:
-            error_text = "Прости, не смог начать толкование. Попробуй позже."
-            if response and response.get("error"):
-                error_text = response.get("error")
-            await message.answer(error_text)
-            await state.clear()
-            await message.answer("Диалог завершен.", reply_markup=get_main_menu())
+            if isinstance(response, dict) and "Доступные толкования закончились" in response.get("error", ""):
+                await handle_interpretations_exhausted()
+                return
+            else:
+                error_msg = response.get("error", "Прости, не смог начать толкование. Попробуй позже.")
+                await message.answer(error_msg)
+                await state.clear()
+                await message.answer("Диалог завершен.", reply_markup=get_main_menu())
+
     else:
         response = await api_client.send_follow_up(session_id, telegram_id, message.text)
         if response and response.get("response"):
@@ -228,8 +254,13 @@ async def dialogue_message_handler(message: Message, state: FSMContext, bot: Bot
             sent_message = await bot.send_message(message.chat.id, formatted_text, parse_mode=ParseMode.HTML)
             await sent_message.edit_reply_markup(reply_markup=get_tts_keyboard(sent_message.message_id))
         else:
-            await bot.send_message(message.chat.id, "Прости, не смог обработать твой вопрос. Попробуй еще раз.")
-
+            if isinstance(response, dict) and "Доступные толкования закончились" in response.get("error", ""):
+                await handle_interpretations_exhausted()
+                return
+            else:
+                error_msg = response.get("error", "Прости, не смог обработать твой вопрос. Попробуй еще раз.")
+                await message.answer(error_msg)
+                
 @router.callback_query(F.data.startswith("tts_"))
 async def tts_callback_handler(callback: CallbackQuery, bot: Bot):
     message_id = int(callback.data.split("_")[1])

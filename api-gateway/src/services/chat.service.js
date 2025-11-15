@@ -105,7 +105,12 @@ const chatService = {
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
 
-    await redisClient.del(`sessions:user-${user.id}:page-1:limit-15`);
+    const pattern = `sessions:user-${user.id}:*`;
+    const keys = await redisClient.keys(pattern);
+    if (keys.length > 0) {
+        await redisClient.del(keys);
+        console.log(`Invalidated cache keys by pattern "${pattern}":`, keys);
+    }
     const assistantMessage = session.messages.find(msg => msg.role === 'assistant');
     
     if (source === 'web') {

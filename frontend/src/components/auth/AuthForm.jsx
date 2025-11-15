@@ -7,7 +7,6 @@ import { useAuth } from '@/context/AuthContext';
 import { loginUser, registerUser } from '@/services/apiClient';
 import { AuthToggle } from './AuthToggle';
 import { AuthInput } from './AuthInput';
-import { AuthMethodToggle } from './AuthMethodToggle';
 import OtpInput from './OtpInput';
 
 const isValidIdentifier = (identifier) => {
@@ -18,21 +17,77 @@ const isValidIdentifier = (identifier) => {
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [authMethod, setAuthMethod] = useState('email');
+  const [authMethod] = useState('email');
   const [formData, setFormData] = useState({ name: '', email: '', password: '', birthDate: '' });
   const [isAgreed, setIsAgreed] = useState(false);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [registrationStep, setRegistrationStep] = useState(1);
   const [otp, setOtp] = useState('');
-
+  const [errors, setErrors] = useState({});
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-  
+  const validateBirthDate = (date) => {
+    if (!date) return 'Укажите дату рождения';
+
+    const birth = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (isNaN(birth.getTime())) return 'Некорректный формат даты рождения';
+    if (birth >= today) return 'Дата рождения не должна быть будущей';
+
+    const birthYear = birth.getFullYear();
+    if (birthYear < 1926) return 'Дата рождения должна быть не раньше 1926 года';
+    if (birthYear > 2020) return 'Дата рождения должна быть не позже 2020 года';
+
+    return '';
+  };
+
+  const validatePassword = (password) => {
+    if (password.length < 6) return 'Пароль должен содержать минимум 6 символов';
+    return '';
+  };
+
+  const validateIdentifier = (identifier, method) => {
+    if (!identifier) return '';
+    if (method === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+      return 'Неверный адрес электронной почты';
+    }
+    if (method === 'phone' && !/^\+7\d{10}$/.test(identifier)) {
+      return 'Номер телефона должен быть в формате +7XXXXXXXXXX';
+    }
+    return '';
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    let newErrors = { ...errors };
+    if (value) {
+      switch (name) {
+        case 'birthDate':
+          newErrors.birthDate = validateBirthDate(value);
+          break;
+        case 'password':
+          newErrors.password = validatePassword(value);
+          break;
+        case 'email':
+          newErrors.email = validateIdentifier(value, authMethod);
+          break;
+        default:
+          break;
+      }
+    } else {
+      delete newErrors[name];
+    }
+    setErrors(newErrors);
+  };
+
   const handleIdentifierChange = (e) => {
     let { value } = e.target;
     if ((!isLogin && authMethod === 'phone') || (isLogin && /^[78]/.test(value))) {
@@ -49,6 +104,13 @@ const AuthForm = () => {
         value = value.slice(0, 12);
     }
     setFormData({ ...formData, email: value });
+    if (value) {
+      setErrors({ ...errors, email: validateIdentifier(value, authMethod) });
+    } else {
+      const newErrors = { ...errors };
+      delete newErrors.email;
+      setErrors(newErrors);
+    }
   };
 
   const handleFinalSubmit = async () => {
@@ -68,12 +130,13 @@ const AuthForm = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setErrors({});
 
-    if (isLogin) { 
+    if (isLogin) {
       setIsLoading(true);
       try {
         const response = await loginUser({ email: formData.email, password: formData.password });
@@ -92,26 +155,33 @@ const AuthForm = () => {
 
     if (registrationStep === 1) {
       if (!isAgreed) {
-        toast.error('Необходимо принять условия соглашения.');
+        toast.error('Необходимо согласиться с условиями использования.');
         return;
       }
       if (!isValidIdentifier(formData.email)) {
-        toast.error('Пожалуйста, введите корректный email или номер телефона.');
+        toast.error('Введите корректный адрес электронной почты или номер телефона.');
         return;
       }
-      toast.success(`Код (условно) отправлен на ${formData.email}`);
+      const birthError = validateBirthDate(formData.birthDate);
+      if (birthError) {
+        setErrors({ ...errors, birthDate: birthError });
+        toast.error(birthError);
+        return;
+      }
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) {
+        setErrors({ ...errors, password: passwordError });
+        toast.error(passwordError);
+        return;
+      }
+      if (!formData.name.trim()) {
+        setError('Поле имени не может быть пустым');
+        return;
+      }
       setRegistrationStep(2);
+      return;
     }
   };
-
-  let identifierInputProps;
-  if (isLogin) {
-    identifierInputProps = { placeholder: 'Email или телефон', type: 'text', inputMode: 'text' };
-  } else {
-    identifierInputProps = authMethod === 'email' 
-      ? { placeholder: 'Email', type: 'email', inputMode: 'email' }
-      : { placeholder: '+7 (999) 999-99-99', type: 'tel', inputMode: 'tel' };
-  }
 
   return (
     <div className="w-full max-w-xl bg-black/20 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl">
@@ -123,65 +193,77 @@ const AuthForm = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="font-headings text-5xl font-bold text-center text-white mb-6" 
+          className="font-headings text-5xl font-bold text-center text-white mb-6"
         >
           {isLogin ? 'С возвращением' : 'Присоединяйтесь'}
         </motion.h2>
 
-        {!isLogin && registrationStep === 1 && <AuthMethodToggle method={authMethod} setMethod={setAuthMethod} />}
-
-        <form onSubmit={handleSubmit} className="mt-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
           <AnimatePresence mode="wait">
-            {isLogin || registrationStep === 1 ? (
+            {registrationStep === 1 ? (
               <motion.div
-                key="details-step"
+                key="form-fields"
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-8"
+                className="space-y-6"
               >
                 {!isLogin && (
-                  <AuthInput
-                    name="name"
-                    placeholder="Ваше имя"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    key="name-input"
-                  />
+                  <div>
+                    <AuthInput
+                      name="name"
+                      type="text"
+                      placeholder="Имя"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      key="name-input"
+                    />
+                    {formData.name && !formData.name.trim() && <p className="text-red-400 text-sm mt-1">Поле имени не должно содержать только пробелы</p>}
+                  </div>
                 )}
-                
-                <AuthInput
-                  name="email"
-                  value={formData.email}
-                  onChange={handleIdentifierChange}
-                  required
-                  key={isLogin ? 'login-id' : `register-${authMethod}`}
-                  {...identifierInputProps}
-                />
-                <AuthInput
-                  name="password"
-                  type="password"
-                  placeholder="Пароль"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  key="password-input"
-                />
+                <div>
+                  <AuthInput
+                    name="email"
+                    type="text"
+                    placeholder={isLogin ? "Email или телефон" : authMethod === 'email' ? "Email" : "Телефон"}
+                    value={formData.email}
+                    onChange={handleIdentifierChange}
+                    required
+                    key={isLogin ? 'login-id' : `register-${authMethod}`}
+                  />
+                  {formData.email && errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
+                </div>
+                <div>
+                  <AuthInput
+                    name="password"
+                    type="password"
+                    placeholder="Пароль"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    key="password-input"
+                  />
+                  {formData.password && errors.password && <p className="text-red-400 text-sm mt-1">{errors.password}</p>}
+                </div>
 
                 {!isLogin && (
-                  <AuthInput
-                    name="birthDate"
-                    type="date"
-                    placeholder="Дата рождения"
-                    value={formData.birthDate}
-                    onChange={handleInputChange}
-                    key="birthdate-input"
-                  />
+                  <div>
+                    <AuthInput
+                      name="birthDate"
+                      type="date"
+                      placeholder="Дата рождения"
+                      value={formData.birthDate}
+                      onChange={handleInputChange}
+                      key="birthdate-input"
+                    />
+                    {formData.birthDate && errors.birthDate && <p className="text-red-400 text-sm mt-1">{errors.birthDate}</p>}
+                  </div>
                 )}
 
                 {!isLogin && (
-                  <motion.div 
+                  <motion.div
                     key="agreement-checkbox"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -208,17 +290,19 @@ const AuthForm = () => {
                     </label>
                   </motion.div>
                 )}
-                
+
                 {error && <p className="text-red-400 text-center text-sm pt-4">{error}</p>}
 
                 <div className="pt-4">
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || (!isLogin && (!isAgreed || !formData.name.trim() || !isValidIdentifier(formData.email) || !formData.password || !formData.birthDate || !!errors.birthDate || !!errors.password || !!errors.email))}
                     className="w-full bg-accent-ai text-white font-bold py-4 px-6 rounded-lg text-lg transition-all duration-300 ease-in-out hover:bg-white hover:text-accent-ai transform hover:-translate-y-1 disabled:opacity-50"
                   >
                     {isLogin ? 'Войти' : 'Получить код'}
                   </button>
+                  {(!isLogin && (!isAgreed || !formData.name.trim() || !isValidIdentifier(formData.email) || !formData.password || !formData.birthDate || !!errors.birthDate || !!errors.password || !!errors.email)) && <p className="text-red-400 text-center text-sm mt-2">Не все условия заполнения соблюдены</p>}
+                  {(!isLogin && formData.email && isValidIdentifier(formData.email) && formData.password && !errors.password && formData.birthDate && !errors.birthDate && !formData.name.trim()) && <p className="text-red-400 text-center text-sm mt-2">Поле имени не может быть пустым</p>}
                 </div>
               </motion.div>
             ) : (

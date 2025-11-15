@@ -50,6 +50,9 @@ export const getChatSessionDetails = (sessionId) => {
   return apiClient.get(`/chat/${sessionId}`);
 };
 
+export const deleteChatSession = (sessionId) => {
+  return apiClient.delete(`/chat/${sessionId}`);
+};
 
 export const mockSubscribeToPremium = () => {
   return apiClient.post('/payment/mock-subscribe');

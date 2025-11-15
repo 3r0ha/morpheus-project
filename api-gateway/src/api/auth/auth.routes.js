@@ -76,6 +76,31 @@ router.post(
     return true;
   }),
   body('password').isLength({ min: 6 }).withMessage('Пароль должен содержать минимум 6 символов.'),
+  body('birthDate')
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage('Некорректный формат даты (YYYY-MM-DD)')
+    .custom((value) => {
+      const today = new Date();
+      const birth = new Date(value);
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      const dayDiff = today.getDate() - birth.getDate();
+
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+        age--;
+      }
+
+      if (age < 5) {
+        throw new Error('Возраст должен быть не менее 5 лет');
+      }
+      if (age > 99) {
+        throw new Error('Возраст не может превышать 99 лет');
+      }
+
+      return true;
+    }),
   register
 );
 

@@ -78,11 +78,26 @@ export const ChatInput = ({ onSendMessage, isLoading }) => {
       return;
     }
 
-    stopGlobalRecorder();
+    const mimeTypes = [
+        'audio/webm; codecs=opus',
+        'audio/ogg; codecs=opus',  
+        'audio/webm',             
+        'audio/mp4',              
+    ];
+
+    const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+
+    if (!supportedMimeType) {
+        toast.error('Ваш браузер не поддерживает запись аудио.');
+        console.error("No supported MIME type found for MediaRecorder");
+        return;
+    }
+    console.log("Using supported MIME type:", supportedMimeType);
+
     setIsRecording(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/ogg; codecs=opus' });
+      const recorder = new MediaRecorder(stream, { mimeType: supportedMimeType });
       mediaRecorderRef.current = recorder;
 
       const localAudioChunks = [];
@@ -98,9 +113,11 @@ export const ChatInput = ({ onSendMessage, isLoading }) => {
 
         if (localAudioChunks.length === 0) return;
 
-        const audioBlob = new Blob(localAudioChunks, { type: 'audio/ogg' });
+        const audioBlob = new Blob(localAudioChunks, { type: supportedMimeType });
         const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.ogg');
+        
+        const fileExtension = supportedMimeType.split('/')[1].split(';')[0];
+        formData.append('audio', audioBlob, `recording.${fileExtension}`);
         
         try {
           toast.loading('Распознавание речи...');

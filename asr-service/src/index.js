@@ -1,8 +1,15 @@
 import express from 'express';
 import 'dotenv/config';
+import ffmpeg from 'fluent-ffmpeg';
+import fs from 'fs/promises';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
 const port = process.env.PORT || 3020;
+const TEMP_DIR = path.join(process.cwd(), 'temp');
+
+fs.mkdir(TEMP_DIR, { recursive: true });
 
 const fixDuplicateText = (text) => {
     if (typeof text !== 'string' || text.length === 0) {
@@ -20,7 +27,6 @@ const fixDuplicateText = (text) => {
         }
     }
     
-  
     if (trimmedText.length % 2 !== 0) {
         const firstHalf = trimmedText.substring(0, mid);
         const secondHalf = trimmedText.substring(mid + 1);
@@ -33,14 +39,45 @@ const fixDuplicateText = (text) => {
     return trimmedText; 
 };
 
-app.use(express.raw({ type: 'audio/ogg', limit: '10mb' }));
+app.use(express.raw({ type: 'audio/*', limit: '10mb' }));
 
 app.post('/stt', async (req, res) => {
   if (!req.body || req.body.length === 0) {
     return res.status(400).json({ error: 'Тело запроса с аудиоданными пусто.' });
   }
 
+  const inputId = uuidv4();
+  const contentType = req.headers['content-type'] || 'audio/webm';
+  const inputExtension = contentType.split('/')[1].split(';')[0];
+  
+  const inputPath = path.join(TEMP_DIR, `${inputId}.${inputExtension}`);
+  const outputPath = path.join(TEMP_DIR, `${inputId}-converted.ogg`);
+  
   try {
+    // 1. Всегда сохраняем полученный аудиофайл во временный файл
+    await fs.writeFile(inputPath, req.body);
+    console.log(`Получен файл ${inputPath} (${contentType})`);
+
+    // 2. Всегда прогоняем его через FFMPEG для нормализации/конвертации в OGG Opus
+    await new Promise((resolve, reject) => {
+      ffmpeg(inputPath)
+        .toFormat('ogg')
+        .audioCodec('libopus')
+        .on('error', (err) => {
+          console.error('Ошибка FFMPEG:', err.message);
+          reject(new Error('Не удалось обработать аудиофайл.'));
+        })
+        .on('end', () => {
+          console.log(`Файл успешно нормализован в ${outputPath}`);
+          resolve();
+        })
+        .save(outputPath);
+    });
+
+    // 3. Читаем сконвертированный/нормализованный OGG файл
+    const convertedAudioBuffer = await fs.readFile(outputPath);
+
+    // 4. Отправляем эталонный файл в Яндекс
     const yandexUrl = 'https://stt.api.cloud.yandex.net/speech/v1/stt:recognize?lang=ru-RU&format=oggopus&sampleRateHertz=48000';
     const headers = {
       'Authorization': `Api-Key ${process.env.YANDEX_API_KEY}`,
@@ -50,7 +87,7 @@ app.post('/stt', async (req, res) => {
     const yandexResponse = await fetch(yandexUrl, {
       method: 'POST',
       headers: headers,
-      body: req.body,
+      body: convertedAudioBuffer,
     });
 
     const responseData = await yandexResponse.json();
@@ -64,8 +101,12 @@ app.post('/stt', async (req, res) => {
     res.json({ text: fixedText });
 
   } catch (error) {
-    console.error('Ошибка в ASR сервисе при обращении к Yandex:', error.message);
-    res.status(502).json({ error: 'Ошибка при обращении к сервису распознавания Yandex.', details: error.message });
+    console.error('Ошибка в ASR сервисе:', error.message);
+    res.status(502).json({ error: 'Ошибка при обращении к сервису распознавания.', details: error.message });
+  } finally {
+    // 5. Удаляем оба временных файла
+    await fs.unlink(inputPath).catch(err => console.error(`Не удалось удалить временный файл ${inputPath}:`, err.message));
+    await fs.unlink(outputPath).catch(err => console.error(`Не удалось удалить временный файл ${outputPath}:`, err.message));
   }
 });
 

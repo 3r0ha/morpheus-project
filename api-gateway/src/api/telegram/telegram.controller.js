@@ -10,9 +10,8 @@ import redisClient from '../../config/redis.js';
 
 const ASR_SERVICE_URL = 'http://asr-service:3020';
 const TTS_SERVICE_URL = 'http://tts-service:3010';
-const MAX_CHUNK_LENGTH = 240; // Установим лимит чуть меньше 249 для надежности
+const MAX_CHUNK_LENGTH = 240; 
 
-// Функция для нарезки текста на безопасные фрагменты
 const splitTextIntoChunks = (text) => {
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
   const chunks = [];
@@ -23,7 +22,6 @@ const splitTextIntoChunks = (text) => {
       if (currentChunk) {
         chunks.push(currentChunk.trim());
       }
-      // Если одно предложение само по себе длиннее лимита, режем его по словам
       if (sentence.length > MAX_CHUNK_LENGTH) {
           const words = sentence.split(' ');
           let hardChunk = '';
@@ -181,9 +179,13 @@ export const deleteSessionForTelegram = asyncHandler(async (req, res) => {
 
     await prisma.chatSession.delete({ where: { id: sessionId } });
 
-    const userSessionsPage1CacheKey = `sessions:user-${user.id}:page-1:limit-15`;
-    const sessionDetailsCacheKey = `session:${sessionId}`;
-    await redisClient.del([userSessionsPage1CacheKey, sessionDetailsCacheKey]);
+    const pattern = `sessions:user-${user.id}:*`;
+    const keys = await redisClient.keys(pattern);
+    if (keys.length > 0) {
+        await redisClient.del(keys);
+        console.log(`Deleted cache keys by pattern "${pattern}":`, keys);
+    }
+    await redisClient.del(`session:${sessionId}`);
 
     res.status(204).send();
 });
@@ -235,7 +237,7 @@ export const handleTextToSpeech = asyncHandler(async (req, res) => {
         for (const chunk of chunks) {
             const ttsResponse = await axios.post(
                 `${TTS_SERVICE_URL}/synthesize`,
-                { text: chunk, format: 'mp3' }, // ИЗМЕНЕНО: ogg_opus -> mp3
+                { text: chunk, format: 'mp3' },
                 { responseType: 'arraybuffer', timeout: 20000 }
             );
             audioBuffers.push(Buffer.from(ttsResponse.data));
@@ -247,7 +249,7 @@ export const handleTextToSpeech = asyncHandler(async (req, res) => {
 
         const finalAudio = Buffer.concat(audioBuffers);
         
-        res.set('Content-Type', 'audio/mpeg'); // ИЗМЕНЕНО: audio/ogg -> audio/mpeg
+        res.set('Content-Type', 'audio/mpeg'); 
         res.send(finalAudio);
 
     } catch (error) {

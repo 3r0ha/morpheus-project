@@ -1,17 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Settings, MessageSquare, User, Info, Gem, Send } from 'lucide-react';
+import { Plus, Settings, MessageSquare, User, Info, Gem, Send, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getChatSessions, getUserProfile } from '@/services/apiClient';
 import { SidebarSkeleton } from './SidebarSkeleton';
 
-export const Sidebar = ({ isOpen, onNewChat, activeChatId, setActiveChatId }) => {
+export const Sidebar = ({ isOpen, onNewChat, activeChatId, setActiveChatId, onDeleteChat }) => { 
   const { data: sessionsData, isLoading: isLoadingSessions } = useQuery({
     queryKey: ['chatSessions'],
     queryFn: getChatSessions,
     select: (data) => data.data.data,
   });
-
+  
   const { data: userData } = useQuery({
     queryKey: ['userProfile'],
     queryFn: () => getUserProfile().then(res => res.data),
@@ -40,10 +40,10 @@ export const Sidebar = ({ isOpen, onNewChat, activeChatId, setActiveChatId }) =>
           {!isLoadingSessions && sessionsData?.length > 0 && (
             <ul className="space-y-1">
               {sessionsData.map(chat => (
-                <li key={chat.id}>
+                <li key={chat.id} className="group flex items-center gap-1"> 
                   <button
                     onClick={() => setActiveChatId(chat.id)}
-                    className={`relative flex items-center w-full text-left px-4 py-2.5 rounded-lg text-sm truncate transition-colors
+                    className={`flex items-center flex-grow min-w-0 text-left pl-4 py-2.5 rounded-lg text-sm truncate transition-colors
                                       ${activeChatId === chat.id 
                                         ? 'bg-accent-ai/20 text-text-primary' 
                                         : 'text-text-secondary hover:bg-surface-1'}`}
@@ -52,7 +52,18 @@ export const Sidebar = ({ isOpen, onNewChat, activeChatId, setActiveChatId }) =>
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-accent-ai rounded-r-full"></div>
                     )}
                     <MessageSquare size={16} className="mr-3 flex-shrink-0"/>
-                    {chat.title}
+                    <span className="truncate">{chat.title}</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteChat(chat.id, chat.title);
+                    }}
+                    className="p-1 text-text-secondary hover:text-red-500 rounded-md
+                              opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                    title="Удалить чат"
+                  >
+                    <Trash2 size={16} />
                   </button>
                 </li>
               ))}
