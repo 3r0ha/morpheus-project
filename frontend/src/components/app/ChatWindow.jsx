@@ -48,7 +48,7 @@ export const ChatWindow = ({ chatLogic }) => {
               <>
                 {messages.map((msg, index) => (
                     <Message 
-                        key={index} 
+                        key={msg.id || index}
                         {...msg}
                     />
                     ))}

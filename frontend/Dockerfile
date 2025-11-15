@@ -38,15 +38,20 @@ RUN echo 'server { \
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
         proxy_set_header X-Forwarded-Proto $scheme; \
       } \
-       location /socket.io/ { \
+       location ~ ^/(api|socket\.io|storage)/ { \
         resolver 127.0.0.11 valid=30s; \
         set $backend_url http://morpheus_api_gateway:3001; \
+        \
         proxy_pass $backend_url; \
         proxy_http_version 1.1; \
         proxy_set_header Upgrade $http_upgrade; \
         proxy_set_header Connection "upgrade"; \
-        proxy_set_header Host $host;} \
-    }' > /etc/nginx/conf.d/app.conf
+        proxy_set_header Host $host; \
+        proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
+      } \
+    }' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

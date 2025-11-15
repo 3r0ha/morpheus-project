@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,16 @@ const PaymentPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [cardData, setCardData] = useState({ number: '', expiry: '', cvv: '' });
+  const [tg, setTg] = useState(null); 
+
+  useEffect(() => {
+    if (window.Telegram && window.Telegram.WebApp) {
+      const webApp = window.Telegram.WebApp;
+      webApp.ready(); 
+      setTg(webApp);
+      console.log("Telegram Web App SDK инициализирован.");
+    }
+  }, []);
 
   const mutation = useMutation({
     mutationFn: mockSubscribeToPremium,
@@ -18,7 +28,12 @@ const PaymentPage = () => {
       toast.success('Оплата прошла успешно! Добро пожаловать в Premium.', { duration: 3000 });
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
       setTimeout(() => {
-        navigate('/profile');
+        if (tg) {
+          console.log("Закрытие Telegram Web App...");
+          tg.close();
+        } else {
+          navigate('/profile');
+        }
       }, 2000);
     },
     onError: (error) => {

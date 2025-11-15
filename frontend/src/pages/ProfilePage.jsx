@@ -71,8 +71,10 @@ const ProfilePage = () => {
               <h2 className="text-2xl font-semibold mb-6">Личные данные</h2>
               <form onSubmit={handleProfileUpdate} className="space-y-4">
                 <div>
-                  <label className="text-sm text-text-secondary">Email</label>
-                  <p className="text-lg">{user?.email}</p>
+                  <label className="text-sm text-text-secondary">
+                    {user?.email ? 'Email' : 'Телефон'}
+                  </label>
+                  <p className="text-lg">{user?.email || user?.phone}</p>
                 </div>
                 <div>
                   <label htmlFor="name" className="text-sm text-text-secondary">Имя</label>

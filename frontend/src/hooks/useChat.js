@@ -20,7 +20,7 @@ export const useChat = (activeChatId, onNewChatCreated) => {
     enabled: !!activeChatId, 
     select: (data) => data?.data, 
   });
--
+
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (!token) return;
@@ -98,9 +98,7 @@ export const useChat = (activeChatId, onNewChatCreated) => {
     if (activeChatId !== currentSessionId) {
       setCurrentSessionId(activeChatId);
       if (activeChatId === null) {
-        setMessages([
-          { role: 'assistant', content: 'Готов слушать новый сон.' }
-        ]);
+        setMessages([]);
         document.title = 'Морфеус - ИИ Сонник';
       }
     }
@@ -139,9 +137,7 @@ export const useChat = (activeChatId, onNewChatCreated) => {
 
   const startNewChat = () => {
     setCurrentSessionId(null);
-    setMessages([
-      { role: 'assistant', content: 'Готов слушать новый сон.' }
-    ]);
+    setMessages([]);
     document.title = 'Морфеус - ИИ Сонник';
   };
 
