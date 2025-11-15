@@ -5,6 +5,8 @@ import { Server } from 'socket.io';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import fs from 'fs';
 
 BigInt.prototype.toJSON = function() {
   return this.toString();
@@ -58,6 +60,9 @@ chatService.init(io, userSocketMap);
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json());
+
+fs.mkdirSync('uploads', { recursive: true });
+
 app.use(express.text());
 app.use(sanitizeInput);
 
@@ -80,6 +85,10 @@ const authLimiter = rateLimit({
 // Роуты
 app.get('/', (req, res) => { res.json({ message: 'API Морфеус работает' }) });
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+const staticPath = path.resolve(process.cwd(), 'storage');
+app.use('/storage', express.static(staticPath));
+
 app.use('/api/auth', authLimiter);
 app.use('/api', apiRoutes);
 

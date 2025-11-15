@@ -13,6 +13,27 @@ app.get('/', (req, res) => {
   res.json({ status: 'AI Service is running' });
 });
 
+app.post('/classify-intent', async (req, res) => {
+  const { text } = req.body;
+
+  if (!text || typeof text !== 'string' || text.trim().length === 0) {
+    return res.status(422).json({ detail: [{ field: 'text', message: 'text is required' }] });
+  }
+
+  const classificationSystemPrompt = `Ты — точный и быстрый классификатор намерений. Твоя задача — определить, описывает ли пользователь свой сон, сновидение, кошмар или видение, которое он видел во сне. Не отвечай на вопрос пользователя. Не давай никаких объяснений. Твой единственный ответ должен быть одним словом: "true", если это о сне, или "false", если это любой другой вопрос или тема.`;
+  
+  try {
+    const response = await callYandexGPT(classificationSystemPrompt, text, [], []);
+    
+    const isDreamRelated = response.trim().toLowerCase() === 'true';
+    
+    res.json({ is_dream_related: isDreamRelated });
+  } catch (error) {
+    console.error('Intent Classification Error:', error.message);
+    res.status(500).json({ is_dream_related: true, error: 'Classification failed, defaulting to true.' });
+  }
+});
+
 function validateRequest(body) {
   const errors = [];
 

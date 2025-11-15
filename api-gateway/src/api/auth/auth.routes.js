@@ -13,6 +13,16 @@ import { changePassword } from './auth.controller.js';
 
 const router = Router();
 
+const isEmailOrPhone = (value) => {
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const isPhone = /^(?:\+7|7|8)\d{10}$/.test(value.replace(/[\s-()]/g, ''));
+  
+  if (!isEmail && !isPhone) {
+    throw new Error('Пожалуйста, введите корректный email или номер телефона.');
+  }
+  return true;
+};
+
 /**
  * @swagger
  * tags:
@@ -36,7 +46,7 @@ const router = Router();
  *             properties:
  *               email:
  *                 type: string
- *                 format: email
+ *                 description: Email или номер телефона пользователя
  *                 example: "user@example.com"
  *               password:
  *                 type: string
@@ -55,11 +65,16 @@ const router = Router();
  *       400:
  *         description: Ошибка валидации данных.
  *       409:
- *         description: Пользователь с таким email уже существует.
+ *         description: Пользователь с таким email или телефоном уже существует.
  */
 router.post(
   '/register',
-  body('email').isEmail().withMessage('Пожалуйста, введите корректный email или телефон.'),
+  body('email').custom(value => {
+    if (!isEmailOrPhone(value)) {
+      throw new Error('Пожалуйста, введите корректный email или номер телефона.');
+    }
+    return true;
+  }),
   body('password').isLength({ min: 6 }).withMessage('Пароль должен содержать минимум 6 символов.'),
   register
 );
@@ -80,7 +95,7 @@ router.post(
  *             properties:
  *               email:
  *                 type: string
- *                 format: email
+ *                 description: Email или номер телефона пользователя
  *                 example: "user@example.com"
  *               password:
  *                 type: string
@@ -93,7 +108,12 @@ router.post(
  */
 router.post(
   '/login',
-  body('email').isEmail().withMessage('Пожалуйста, введите корректный email или телефон.'),
+  body('email').custom(value => {
+    if (!isEmailOrPhone(value)) {
+      throw new Error('Пожалуйста, введите корректный email или номер телефона.');
+    }
+    return true;
+  }),
   body('password').notEmpty().withMessage('Пароль не может быть пустым.'),
   login
 );

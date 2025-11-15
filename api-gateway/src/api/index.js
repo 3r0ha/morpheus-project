@@ -4,6 +4,8 @@ import chatRoutes from './chat/chat.routes.js';
 import adminRoutes from './admin/admin.routes.js';
 import telegramRoutes from './telegram/telegram.routes.js';
 import paymentRoutes from './payment/payment.routes.js';
+import ttsRoutes from './tts/tts.routes.js';
+import asrRoutes from './asr/asr.routes.js';
 
 import statusStore from '../config/statusStore.js'; 
 import { prisma } from '../config/prisma.js';     
@@ -55,5 +57,7 @@ router.use('/chat', chatRoutes);
 router.use('/admin', adminRoutes);
 router.use('/telegram', telegramRoutes);
 router.use('/payment', paymentRoutes);
+router.use('/tts', ttsRoutes);
+router.use('/asr', asrRoutes);
 
 export default router;

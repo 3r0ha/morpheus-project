@@ -1,20 +1,27 @@
 from aiogram.types import InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-def get_onboarding_keyboard():
+WEB_APP_URL = "https://morpheusantihype.icu"
 
+def get_onboarding_keyboard():
     builder = InlineKeyboardBuilder()
-    web_app_url = "https://morpheusantihype.icu/telegram-connect" 
-    
+    connect_url = f"{WEB_APP_URL}/telegram-connect" 
     builder.button(
         text="➡️ Войти / Зарегистрироваться", 
-        web_app=WebAppInfo(url=web_app_url)
+        web_app=WebAppInfo(url=connect_url)
     )
     return builder.as_markup()
 
-def get_profile_keyboard():
+def get_profile_keyboard(subscription_status: str):
     builder = InlineKeyboardBuilder()
     builder.button(text="📖 Моя история снов", callback_data="show_history")
+    if subscription_status != "PREMIUM":
+        tariffs_url = f"{WEB_APP_URL}/tariffs"
+        builder.button(
+            text="💎 Повысить до Premium",
+            web_app=WebAppInfo(url=tariffs_url)
+        )
+    builder.adjust(1)
     return builder.as_markup()
 
 def create_history_keyboard(history_data: dict):
@@ -56,4 +63,18 @@ def get_confirm_delete_keyboard(session_id: str, current_page: int):
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Да, удалить", callback_data=f"delete_{session_id}_{current_page}")
     builder.button(text="❌ Нет, оставить", callback_data=f"session_{session_id}_page_{current_page}")
+    return builder.as_markup()
+
+def get_premium_feature_keyboard():
+    builder = InlineKeyboardBuilder()
+    tariffs_url = f"{WEB_APP_URL}/tariffs"
+    builder.button(
+        text="💎 Улучшить до Premium",
+        web_app=WebAppInfo(url=tariffs_url)
+    )
+    return builder.as_markup()
+
+def get_tts_keyboard(message_id: int):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔊 Озвучить", callback_data=f"tts_{message_id}")
     return builder.as_markup()

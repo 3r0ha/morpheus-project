@@ -12,6 +12,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from app.handlers import user_handlers
 from app.keyboards.reply_keyboards import get_main_menu
 
+from app.services.redis_client import check_redis_connection
+
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_URL = "http://api-gateway:3001/"
@@ -87,6 +89,32 @@ async def user_authed(data):
     except Exception as e:
         print(f"Ошибка в user_authed: {e}")
 
+@sio.event
+async def user_upgraded_to_premium(data):
+    try:
+        telegram_id = int(data['telegramId'])
+        name = data.get('name', 'Пользователь')
+        print(f"WebSocket: Получено уведомление о Premium-статусе для {telegram_id}")
+
+        text_lines = [
+            "🎉 <b>Поздравляем, твой статус обновлен до Premium!</b>",
+            "",
+            "Теперь тебе доступны:",
+            "• Ежедневные толкования снов",
+            "• Приоритетный доступ к новым функциям",
+            "• Расширенный анализ с учетом контекста",
+            "",
+            "Спасибо, что поддерживаешь проект! Приятных сновидений ✨"
+        ]
+        
+        await bot_instance.send_message(
+            chat_id=telegram_id,
+            text="\n".join(text_lines),
+            parse_mode=ParseMode.HTML 
+        )
+    except Exception as e:
+        print(f"Ошибка в user_upgraded_to_premium: {e}")
+
 async def run_socketio():
     while True:
         try:
@@ -111,6 +139,8 @@ async def main() -> None:
     dp = Dispatcher(storage=storage)
     dp.include_router(user_handlers.router)
 
+    await check_redis_connection()
+    
     socket_task = asyncio.create_task(run_socketio())
     polling_task = asyncio.create_task(dp.start_polling(bot_instance))
     

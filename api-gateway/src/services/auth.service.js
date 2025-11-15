@@ -7,33 +7,48 @@ import { JWT_EXPIRATION } from '../config/constants.js';
 
 const isEmail = (str) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
 
+const formatPhoneNumber = (phone) => {
+    let cleaned = ('' + phone).replace(/\D/g, '');
+    if (cleaned.startsWith('8')) {
+        cleaned = '7' + cleaned.slice(1);
+    }
+    if (cleaned.startsWith('7') && cleaned.length === 11) {
+        return `+${cleaned}`;
+    }
+    if (cleaned.length === 10) {
+        return `+7${cleaned}`;
+    }
+    return phone;
+};
+
 const registerUser = async (identifier, password, name, birthDate, telegramInitData) => {
   const isIdentifierEmail = isEmail(identifier);
   
-  const whereClause = isIdentifierEmail 
-    ? { email: identifier } 
-    : { phone: identifier };
+  let whereClause;
+  let createData = {
+    passwordHash: await bcrypt.hash(password, await bcrypt.genSalt(10)),
+    name: name || null,
+    birthDate: birthDate ? new Date(birthDate) : null,
+  };
 
-  const existingUser = await prisma.user.findFirst({ where: { OR: [{email: identifier}, {phone: identifier}] }});
+  if (isIdentifierEmail) {
+    whereClause = { email: identifier };
+    createData.email = identifier;
+  } else {
+    const formattedPhone = formatPhoneNumber(identifier);
+    whereClause = { phone: formattedPhone };
+    createData.phone = formattedPhone;
+  }
+
+  const existingUser = await prisma.user.findUnique({ where: whereClause });
   
   if (existingUser) {
-    const error = new Error('Пользователь с таким email или телефоном уже существует');
+    const error = new Error(`Пользователь с таким ${isIdentifierEmail ? 'email' : 'телефоном'} уже существует`);
     error.statusCode = 409;
     throw error;
   }
 
-  const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash(password, salt);
-
-  const newUser = await prisma.user.create({
-    data: {
-      email: isIdentifierEmail ? identifier : null,
-      phone: !isIdentifierEmail ? identifier : null,
-      passwordHash,
-      name: name || null,
-      birthDate: birthDate ? new Date(birthDate) : null,
-    },
-  });
+  const newUser = await prisma.user.create({ data: createData });
 
   if (telegramInitData) {
     try {
@@ -46,7 +61,7 @@ const registerUser = async (identifier, password, name, birthDate, telegramInitD
 
   const { passwordHash: _, ...userWithoutPassword } = newUser;
 
-  const payload = { userId: newUser.id, identifier: isIdentifierEmail ? newUser.email : newUser.phone };
+  const payload = { userId: newUser.id, identifier: newUser.email || newUser.phone };
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: JWT_EXPIRATION,
   });
@@ -57,9 +72,9 @@ const registerUser = async (identifier, password, name, birthDate, telegramInitD
 const loginUser = async (identifier, password) => {
   const isIdentifierEmail = isEmail(identifier);
   
-  const whereClause = isIdentifierEmail 
+  let whereClause = isIdentifierEmail 
     ? { email: identifier } 
-    : { phone: identifier };
+    : { phone: formatPhoneNumber(identifier) };
   
   const user = await prisma.user.findUnique({ where: whereClause });
 
@@ -69,7 +84,7 @@ const loginUser = async (identifier, password) => {
     throw error;
   }
 
-  const payload = { userId: user.id, identifier: isIdentifierEmail ? user.email : user.phone };
+  const payload = { userId: user.id, identifier: user.email || user.phone };
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: JWT_EXPIRATION,
   });

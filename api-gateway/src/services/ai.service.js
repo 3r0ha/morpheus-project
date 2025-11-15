@@ -4,6 +4,20 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
 
 export const getInterpretation = async (user, new_message_text, history = [], previousDreams = []) => {
   try {
+    if (history.length === 0) {
+      try {
+        const classificationResponse = await axios.post(`${AI_SERVICE_URL}/classify-intent`, {
+          text: new_message_text
+        });
+        
+        if (classificationResponse.data && !classificationResponse.data.is_dream_related) {
+          const politeRefusal = "Я — Морфеус, толкователь снов. Моя задача — помогать вам разбираться в мире сновидений. Я не могу отвечать на вопросы, не связанные со снами. Пожалуйста, опишите свой сон.";
+          return { success: true, data: politeRefusal };
+        }
+      } catch (classificationError) {
+        console.error("Ошибка при вызове классификатора намерений. Пропускаем проверку.", classificationError.message);
+      }
+    }
     const userInfoPayload = {
       name: user.name || 'Пользователь',
     };
@@ -34,8 +48,8 @@ export const getInterpretation = async (user, new_message_text, history = [], pr
       if (validationErrors && validationErrors.length > 0) {
         const firstError = validationErrors[0];
         
-        if (firstError.type === 'string_too_short' || firstError.type === 'string_too_long') {
-          return { success: false, message: 'Текст сна должен быть подходящей длины.' };
+        if (firstError.field === 'new_message_text') {
+          return { success: false, message: 'Текст сна должен быть подходящей длины (не менее 10 символов).' };
         }
         return { success: false, message: `Ошибка в данных: ${firstError.msg}` };
       }

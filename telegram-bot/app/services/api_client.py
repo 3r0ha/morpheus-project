@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import aiohttp
 import asyncio
+from typing import Optional
 
 load_dotenv()
 
@@ -15,7 +16,10 @@ class APIClient:
         url = f"{self.base_url}{path}"
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.request(method, url, timeout=15, **kwargs) as response:
+                async with session.request(method, url, timeout=30, **kwargs) as response:
+                    if path.startswith("/telegram/tts") and response.status == 200:
+                        return await response.read()
+
                     if method.upper() == "DELETE" and response.status == 204:
                         return response.status
 
@@ -66,5 +70,21 @@ class APIClient:
         path = f"/telegram/session/{session_id}"
         payload = {"telegramId": telegram_id}
         return await self._request("DELETE", path, json=payload)
+    
+    async def recognize_voice(self, telegram_id: int, file_path: str) -> Optional[dict]:
+        path = "/telegram/stt"
+        data = aiohttp.FormData()
+        data.add_field('telegramId', str(telegram_id))
+        data.add_field('audio',
+                       open(file_path, 'rb'),
+                       filename='voice.ogg',
+                       content_type='audio/ogg')
+        
+        return await self._request("POST", path, data=data)
+
+    async def synthesize_speech(self, telegram_id: int, text: str) -> Optional[bytes]:
+        path = "/telegram/tts"
+        payload = {"telegramId": telegram_id, "text": text}
+        return await self._request("POST", path, json=payload)
 
 api_client = APIClient()
